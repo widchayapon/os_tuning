@@ -1,51 +1,80 @@
 #!/bin/bash
 
-# Update package lists
-echo "Updating package lists..."
+echo "============================================================================="
+echo ">>> Task 1 (1/2): Updating package lists..."
 sudo apt update -y
 sleep 2
+echo "============================================================================="
 
-# Upgrade installed packages
-echo "Upgrading installed packages..."
+echo "============================================================================="
+echo ">>> Task 1 (2/2): Upgrading installed packages..."
 sudo apt upgrade -y
 sleep 2
+echo "============================================================================="
 
-# Disable and stop systemd-resolved
-echo "Disabling and stopping systemd-resolved..."
-sudo systemctl enable systemd-resolved.service
-sudo systemctl restart systemd-resolved
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 2 (1/2): Disabling and stopping systemd-resolved..."
+sudo systemctl disable systemd-resolved.service
+sudo systemctl stop systemd-resolved
 sleep 2
+echo "============================================================================="
 
-# Remove existing resolv.conf and create a new one
-echo "Updating /etc/resolv.conf with new nameservers..."
+echo "============================================================================="
+echo ">>> Task 2 (2/2): Updating /etc/resolv.conf with new nameservers..."
 sudo rm -rf /etc/resolv.conf
 cat <<EOF | sudo tee /etc/resolv.conf
-nameserver 2.2.2.2
-nameserver 9.9.9.9
+nameserver 1.1.1.1
+nameserver 8.8.8.8
 EOF
 sleep 2
+echo "============================================================================="
 
-# Disable UFW
-echo "Disabling UFW..."
-sudo ufw enable
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 3: Updating /etc/hosts with the current hostname..."
+hostname=$(hostname)
+cp /etc/hosts /etc/hosts.bak
+sed -i "/127.0.1.1 ubuntu22/a 127.0.1.1 $hostname" /etc/hosts
+echo "Task 3: /etc/hosts has been updated."
+echo "============================================================================="
+
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 4 (1/2): Disabling UFW firewall..."
+sudo ufw disable
 sleep 2
+echo "============================================================================="
 
-# Check UFW status
-echo "Checking UFW status..."
+echo "============================================================================="
+echo ">>> Task 4 (2/2): Checking UFW status..."
 sudo ufw status
-echo "------------------------------------------------------------"
 sleep 2
+echo "============================================================================="
 
-# Stop and disable ds_agent service
-echo "Stopping and disabling ds_agent service..."
-sudo systemctl restart ds_agent
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 5: Stopping and disabling ds_agent service..."
+sudo systemctl stop ds_agent
 sleep 2
-sudo systemctl enable ds_agent
+sudo systemctl disable ds_agent
 sleep 2
+echo "============================================================================="
 
 
-# Disable IPv6 in sysctl
-echo ">> Disable IPv6 in sysctl ... "
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 6: Disabling IPv6 in sysctl..."
 cat <<EOF | sudo tee -a /etc/sysctl.conf > /dev/null 2>&1
 ### Disable IPv6 ###
 net.ipv6.conf.all.disable_ipv6=1
@@ -53,74 +82,107 @@ net.ipv6.conf.default.disable_ipv6=1
 net.ipv6.conf.lo.disable_ipv6=1
 EOF
 sudo sysctl -p
+sleep 2
+echo "============================================================================="
 
-# ตรวจสอบไฟล์ /etc/netplan/00-installer-config.yaml
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 7: Checking netplan configuration files..."
 if [ -f "/etc/netplan/00-installer-config.yaml" ]; then
-    echo "เจอไฟล์ /etc/netplan/00-installer-config.yaml"
+    echo "Found: /etc/netplan/00-installer-config.yaml"
     config_file="/etc/netplan/00-installer-config.yaml"
     temp_file="/tmp/netplan_temp.yaml"
 
     cp "$config_file" "$temp_file"
     sleep 2
 
-    # แก้ไขค่า nameservers
+    echo "Updating nameservers in the configuration..."
     sed -i 's/203.150.213.1/1.1.1.1/' "$temp_file"
     sed -i 's/203.150.218.161/8.8.8.8/' "$temp_file"
     sleep 2
 
-    # เขียนกลับไปยังไฟล์ YAML
     sudo cp "$temp_file" "$config_file"
-    sleep 2
-
-    # ลบไฟล์ชั่วคราว
     rm "$temp_file"
     sleep 2
 
-    # สร้างคำสั่งสำหรับทำให้การตั้งค่าเครือข่ายเป็นปัจจุบัน
+    echo "Applying the updated netplan configuration..."
     sudo netplan apply
-    sleep 2
-
-    # Display completion message
-    echo "Nameservers updated and netplan configuration applied successfully!"
-    echo "-------------------------------------------------------------------------------------------"
-    echo "OS-tunning complete !!"
+    echo "Netplan configuration applied successfully."
 else
-    # ตรวจสอบไฟล์ /etc/netplan/01-netcfg.yaml หากไม่เจอ /etc/netplan/00-installer-config.yaml
     if [ -f "/etc/netplan/01-netcfg.yaml" ]; then
-        echo "เจอไฟล์ /etc/netplan/01-netcfg.yaml"
+        echo "Found: /etc/netplan/01-netcfg.yaml"
         NETPLAN_CONFIG_FILE="/etc/netplan/01-netcfg.yaml"
 
-        # Backup the original configuration file
-        echo "Backing up the original netplan configuration file..."
+        echo "Backing up the original configuration..."
         sudo cp $NETPLAN_CONFIG_FILE ${NETPLAN_CONFIG_FILE}.bak
         sleep 2
 
-        # Update the nameservers
-        echo "Updating the nameservers in the netplan configuration file..."
+        echo "Updating nameservers..."
         sudo sed -i 's/addresses: \[203.150.213.1,203.150.218.161\]/addresses: [1.1.1.1,8.8.8.8]/' $NETPLAN_CONFIG_FILE
         sleep 2
 
-        # Apply the netplan configuration
-        echo "Applying the netplan configuration..."
+        echo "Applying the updated configuration..."
         sudo netplan apply
-        sleep 2
-
-        # Display completion message
-        echo "Nameservers updated and netplan configuration applied successfully!"
-        echo "-------------------------------------------------------------------------------------------"
-        echo "OS-tunning complete !!"
+        echo "Netplan configuration applied successfully."
     else
-        echo "ไม่เจอไฟล์ /etc/netplan/00-installer-config.yaml และไม่เจอไฟล์ /etc/netplan/01-netcfg.yaml"
+        echo "No suitable netplan configuration file found."
     fi
 fi
+echo "============================================================================="
 
+echo ""
+echo ""
 
-hostname=$(hostname)
-cp /etc/hosts /etc/hosts.bakk
-sed -i "/127.0.1.1 ubuntu22/a 127.0.1.1 $hostname" /etc/hosts
-echo "แก้ไขไฟล์ /etc/hosts ได้แล้วนิ "
+echo "============================================================================="
+echo ">>> Task 8: Checking connectivity to specified endpoints..."
 
-# Reboot the system
+# Define endpoints
+endpoints="git.inet.co.th kb.sdi.one.th"
+
+# Function to display progress bar
+show_progress() {
+    progress=0
+    while [ $progress -le 100 ]; do
+        sleep 0.02  # Simulate progress
+        printf "\rProgress: ["
+        i=0
+        while [ $i -lt 50 ]; do
+            if [ $((i * 2)) -lt $progress ]; then
+                printf "="
+            else
+                printf " "
+            fi
+            i=$((i + 1))
+        done
+        printf "] %d%%" "$progress"
+        progress=$((progress + 2))
+    done
+    printf "\n"
+}
+
+# Loop through each endpoint
+for endpoint in $endpoints; do
+    show_progress
+
+    # Check endpoint connectivity
+    printf "Checking %s... " "$endpoint"
+    if curl -s --head --fail "https://$endpoint" > /dev/null; then
+        printf "\033[1;32m→ Success:\033[0m %s is reachable.\n" "$endpoint" # Green arrow for Success
+    else
+        printf "\033[1;31m→ Failure:\033[0m %s is not reachable. Please contact the relevant team.\n" "$endpoint" # Red arrow for Failure
+    fi
+
+    echo ""
+done
+
+echo "============================================================================="
+
+echo ""
+echo ""
+
+echo "============================================================================="
+echo ">>> Task 9: Rebooting the system..."
 sudo reboot
-
-
+echo "============================================================================="
