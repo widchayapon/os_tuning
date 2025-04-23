@@ -120,7 +120,5 @@ cp /etc/hosts /etc/hosts.bak
 sed -i "/127.0.1.1 ubuntu22/a 127.0.1.1 $hostname" /etc/hosts
 echo "แก้ไขไฟล์ /etc/hosts ได้แล้วนิ "
 
-# Reboot the system
-sudo reboot
 
 
